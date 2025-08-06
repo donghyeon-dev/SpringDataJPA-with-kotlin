@@ -28,16 +28,41 @@ open class Member(
     var status: MemberStatus =  MemberStatus.PENDING
         protected set
 
-
-    fun changeNickname(newNickname: String) {
-        require(newNickname.isNotBlank()) { "nickName cannot be blank" }
-        require(newNickname.length > 10) { "nickName must be more than 10 characters" }
-        nickname = newNickname
+    init {
+        require(nickname.isNotBlank()) { "nickname cannot be blank" }
+        require(nickname.length <= 20) { "nickname must be 20 characters or less" }
+        require(email.isNotBlank()) { "email cannot be blank" }
+        require(email.contains("@")) { "email must be valid format" }
+        require(passwordHash.isNotBlank()) { "passwordHash cannot be blank" }
     }
 
-//    companion object{
-//        fun create()
-//    }
+
+    fun changeNickname(newNickname: String) {
+        require(newNickname.isNotBlank()) { "nickname cannot be blank" }
+        nickname = newNickname
+    }
+    fun changeEmail(newEmail: String){
+        require(newEmail.isNotBlank()) { "email cannot be blank" }
+        require(newEmail.contains("@")) { "email must be valid format" }
+        email = newEmail
+    }
+    fun changePasswordHash(newPasswordHash: String){
+        require(newPasswordHash.isNotBlank()) { "passwordHash cannot be blank" }
+        passwordHash = newPasswordHash
+    }
+    fun changeStatus(newStatus: MemberStatus){
+        require(newStatus != MemberStatus.PENDING) { "status cannot be PENDING" }
+        status = newStatus
+    }
+
+    companion object{
+        fun create(dto: MemberCreateRequest) : Member{
+            return Member(dto.nickname, dto.email, dto.passwordHash)
+        }
+        fun from(dto: MemberDto) : Member{
+            return Member(dto.nickname, dto.email, dto.passwordHash)
+        }
+    }
 
 
 }
