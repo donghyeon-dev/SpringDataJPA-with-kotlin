@@ -2,7 +2,8 @@ package autocat.sample.presentation
 
 import autocat.sample.applicatoin.MemberService
 import autocat.sample.domain.Member
-import autocat.sample.domain.MemberCreateRequest
+import autocat.sample.domain.MemberRegisterRequest
+import autocat.sample.domain.MemberUpdateRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.net.URI
@@ -12,8 +13,8 @@ import java.net.URI
 class MemberController(private val memberService: MemberService) {
 
     @PostMapping
-    fun createMember(@RequestBody memberCreateRequest: MemberCreateRequest): ResponseEntity<Member> {
-        val created = memberService.createMember(memberCreateRequest)
+    fun register(@RequestBody memberRegisterRequest: MemberRegisterRequest): ResponseEntity<Member> {
+        val created = memberService.register(memberRegisterRequest)
         return ResponseEntity.created(URI("/members/${created.id}"))
             .body(created)
     }
@@ -26,6 +27,11 @@ class MemberController(private val memberService: MemberService) {
     @GetMapping("/{memberId}")
     fun findMember(@PathVariable memberId: Long): ResponseEntity<Member>? {
         return ResponseEntity.ofNullable(memberService.findMember(memberId))
+    }
+
+    @PatchMapping("/{memberId}")
+    fun updateMember(@PathVariable memberId:Long, @RequestBody memberUpdateRequest: MemberUpdateRequest): ResponseEntity<Member>{
+        return ResponseEntity.ok(memberService.updateMember(memberId, memberUpdateRequest))
     }
 
 

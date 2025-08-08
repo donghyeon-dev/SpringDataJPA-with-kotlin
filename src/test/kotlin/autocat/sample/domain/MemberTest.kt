@@ -22,8 +22,8 @@ class MemberTest {
 
     @BeforeEach
     fun setup() {
-        member = Member.create(
-            MemberCreateRequest(
+        member = Member.register(
+            MemberRegisterRequest(
                 nickname = "donghyeon",
                 email = "dh@google.com",
                 passwordHash = "encryptedPassword"
@@ -113,7 +113,7 @@ class MemberTest {
 
             // when & then
             assertThatThrownBy {
-                Member.create(MemberCreateRequest(longNickname, "test@test.com", "password"))
+                Member.register(MemberRegisterRequest(longNickname, "test@test.com", "password"))
             }
                 .isInstanceOf(IllegalArgumentException::class.java)
                 .hasMessage("nickname must be 20 characters or less")
@@ -244,7 +244,7 @@ class MemberTest {
         @DisplayName("빈 닉네임으로 생성 시 예외가 발생한다")
         fun `should throw exception when creating with blank nickname`() {
             assertThatThrownBy {
-                Member.create(MemberCreateRequest("", "test@test.com", "password"))
+                Member.register(MemberRegisterRequest("", "test@test.com", "password"))
             }
                 .isInstanceOf(IllegalArgumentException::class.java)
                 .hasMessage("nickname cannot be blank")
@@ -254,7 +254,7 @@ class MemberTest {
         @DisplayName("빈 이메일로 생성 시 예외가 발생한다")
         fun `should throw exception when creating with blank email`() {
             assertThatThrownBy {
-                Member.create(MemberCreateRequest("nickname", "", "password"))
+                Member.register(MemberRegisterRequest("nickname", "", "password"))
             }
                 .isInstanceOf(IllegalArgumentException::class.java)
                 .hasMessage("email cannot be blank")
@@ -264,7 +264,7 @@ class MemberTest {
         @DisplayName("잘못된 이메일 형식으로 생성 시 예외가 발생한다")
         fun `should throw exception when creating with invalid email format`() {
             assertThatThrownBy {
-                Member.create(MemberCreateRequest("nickname", "invalidemail", "password"))
+                Member.register(MemberRegisterRequest("nickname", "invalidemail", "password"))
             }
                 .isInstanceOf(IllegalArgumentException::class.java)
                 .hasMessage("email must be valid format")
@@ -274,7 +274,7 @@ class MemberTest {
         @DisplayName("빈 비밀번호로 생성 시 예외가 발생한다")
         fun `should throw exception when creating with blank password`() {
             assertThatThrownBy {
-                Member.create(MemberCreateRequest("nickname", "test@test.com", ""))
+                Member.register(MemberRegisterRequest("nickname", "test@test.com", ""))
             }
                 .isInstanceOf(IllegalArgumentException::class.java)
                 .hasMessage("passwordHash cannot be blank")

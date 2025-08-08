@@ -1,6 +1,7 @@
 package autocat.sample.domain
 
 
+import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
@@ -16,16 +17,20 @@ open class Member(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null
 
+    @Column(nullable = false, length = 20 )
     var nickname: String = nickName
         protected set
 
+    @Column(nullable = false)
     var email: String = email
         protected set
 
+    @Column(nullable = false)
     var passwordHash: String = passwordHash
         protected set
 
-    var status: MemberStatus =  MemberStatus.PENDING
+    @Column(nullable = false)
+    var status: MemberStatus = MemberStatus.PENDING
         protected set
 
     init {
@@ -37,26 +42,31 @@ open class Member(
     }
 
 
-    fun changeNickname(newNickname: String) {
-        require(newNickname.isNotBlank()) { "nickname cannot be blank" }
-        nickname = newNickname
-    }
-    fun changeEmail(newEmail: String){
-        require(newEmail.isNotBlank()) { "email cannot be blank" }
-        require(newEmail.contains("@")) { "email must be valid format" }
-        email = newEmail
-    }
-    fun changePasswordHash(newPasswordHash: String){
+    fun changePasswordHash(newPasswordHash: String) {
         require(newPasswordHash.isNotBlank()) { "passwordHash cannot be blank" }
         passwordHash = newPasswordHash
     }
-    fun changeStatus(newStatus: MemberStatus){
-        require(newStatus != MemberStatus.PENDING) { "status cannot be PENDING" }
-        status = newStatus
+
+    fun activate() {
+        require(status == MemberStatus.PENDING) { "status must be PENDING to activate" }
+        status = MemberStatus.ACTIVE
     }
 
-    companion object{
-        fun create(dto: MemberCreateRequest) : Member{
+    fun deactivate() {
+        require(status == MemberStatus.ACTIVE) { "status must be ACTIVE to deactivate" }
+        status = MemberStatus.INACTIVE
+    }
+
+    fun update(request: MemberUpdateRequest) {
+        this.apply {
+            request.nickname.let { this.nickname = it }
+            request.email.let { this.email = it }
+        }
+
+    }
+
+    companion object {
+        fun register(dto: MemberRegisterRequest): Member {
             return Member(dto.nickname, dto.email, dto.passwordHash)
         }
     }
