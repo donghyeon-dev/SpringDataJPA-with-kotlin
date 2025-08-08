@@ -59,9 +59,6 @@ open class Member(
         fun create(dto: MemberCreateRequest) : Member{
             return Member(dto.nickname, dto.email, dto.passwordHash)
         }
-        fun from(dto: MemberDto) : Member{
-            return Member(dto.nickname, dto.email, dto.passwordHash)
-        }
     }
 
 

@@ -1,15 +1,15 @@
 package autocat.sample.domain
 
 import autocat.sample.repository.MemberRepository
-import autocat.sample.support.extension.toDto
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
+import org.springframework.data.repository.findByIdOrNull
 
 @DataJpaTest(showSql = true)
 @DisplayName("Member 도메인 테스트")
@@ -39,14 +39,13 @@ class MemberTest {
         @DisplayName("Member를 생성하고 저장할 수 있다")
         fun `should create and save member successfully`() {
             // given & when
-            val saved = memberRepository.saveAndFlush(member)
+            val saved = memberRepository.save(member)
             val savedId = requireNotNull(saved.id) { "저장된 Member의 ID는 null일 수 없습니다" }
 
             // then
-            val found = memberRepository.findById(savedId)
-            assertThat(found.isPresent).isTrue()
+            val found = requireNotNull(memberRepository.findByIdOrNull(savedId))
 
-            with(found.get()) {
+            with(found) {
                 assertThat(id).isEqualTo(saved.id)
                 assertThat(nickname).isEqualTo(saved.nickname)
                 assertThat(email).isEqualTo(saved.email)
@@ -236,31 +235,6 @@ class MemberTest {
         }
     }
 
-    @Nested
-    @DisplayName("DTO 변환")
-    inner class DtoConversion {
-
-        @Test
-        @DisplayName("Member를 DTO로 변환하고 다시 Member로 변환할 수 있다")
-        fun `should convert member to dto and back to member`() {
-            // given
-            val originalMember = member
-
-            // when
-            val dto = originalMember.toDto()
-            val convertedMember = Member.from(dto)
-
-            // then
-            with(convertedMember) {
-                // ID는 새로 생성되므로 비교하지 않음
-                assertThat(nickname).isEqualTo(originalMember.nickname)
-                assertThat(email).isEqualTo(originalMember.email)
-                assertThat(passwordHash).isEqualTo(originalMember.passwordHash)
-                // from() 메서드는 항상 PENDING 상태로 생성하므로 별도 검증
-                assertThat(status).isEqualTo(MemberStatus.PENDING)
-            }
-        }
-    }
 
     @Nested
     @DisplayName("Member 생성 시 검증")

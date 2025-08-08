@@ -2,9 +2,8 @@ package autocat.sample.applicatoin
 
 import autocat.sample.domain.Member
 import autocat.sample.domain.MemberCreateRequest
-import autocat.sample.domain.MemberDto
 import autocat.sample.repository.MemberRepository
-import autocat.sample.support.extension.toDto
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 
 @Service
@@ -15,9 +14,12 @@ class MemberService(private final val memberRepository: MemberRepository) {
         return memberRepository.save(member)
     }
 
-    fun getMembers(): MutableList<MemberDto> {
+    fun getMembers(): MutableList<Member> {
         return memberRepository.findAll()
-            .map { it.toDto() }
             .toMutableList()
+    }
+
+    fun findMember(memberId: Long): Member? {
+        return memberRepository.findByIdOrNull(memberId)
     }
 }
