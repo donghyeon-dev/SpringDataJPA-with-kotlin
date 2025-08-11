@@ -9,7 +9,7 @@ import jakarta.persistence.Id
 
 @Entity
 open class Member(
-    nickName: String,
+    nickname: String,
     email: String,
     passwordHash: String
 ) {
@@ -18,7 +18,7 @@ open class Member(
     val id: Long? = null
 
     @Column(nullable = false, length = 20 )
-    var nickname: String = nickName
+    var nickname: String = nickname
         protected set
 
     @Column(nullable = false)
@@ -34,17 +34,35 @@ open class Member(
         protected set
 
     init {
+        validateNickname(nickname)
+        validateEmail(email)
+        validatePasswordHash(passwordHash)
+    }
+    private fun validateNickname(nickname: String){
         require(nickname.isNotBlank()) { "nickname cannot be blank" }
         require(nickname.length <= 20) { "nickname must be 20 characters or less" }
+    }
+    private fun validateEmail(email: String){
         require(email.isNotBlank()) { "email cannot be blank" }
         require(email.contains("@")) { "email must be valid format" }
+        }
+    private fun validatePasswordHash(passwordHash: String){
         require(passwordHash.isNotBlank()) { "passwordHash cannot be blank" }
     }
 
-
     fun changePasswordHash(newPasswordHash: String) {
-        require(newPasswordHash.isNotBlank()) { "passwordHash cannot be blank" }
+        validatePasswordHash(newPasswordHash)
         passwordHash = newPasswordHash
+    }
+
+    private fun changeNickname(newNicnkame: String){
+        validateNickname(newNicnkame)
+        this@Member.nickname = newNicnkame
+    }
+
+    private fun changeEmail(newEmail: String){
+        validateEmail(newEmail)
+        email = newEmail
     }
 
     fun activate() {
@@ -58,10 +76,8 @@ open class Member(
     }
 
     fun update(request: MemberUpdateRequest) {
-        this.apply {
-            request.nickname.let { this.nickname = it }
-            request.email.let { this.email = it }
-        }
+        request.nickname?.takeIf { it.isNotBlank() }?.let { changeNickname(it) }
+        request.email?.takeIf { it.isNotBlank() }?.let { changeEmail(it) }
 
     }
 
@@ -70,6 +86,5 @@ open class Member(
             return Member(dto.nickname, dto.email, dto.passwordHash)
         }
     }
-
 
 }
