@@ -96,24 +96,13 @@ jobs:
             exit 0
           fi
 
-          echo "✅ Jacoco report(s) found:" >> "$GITHUB_STEP_SUMMARY"
-          for r in "${REPORTS[@]}"; do
-            echo "- $r" >> "$GITHUB_STEP_SUMMARY"
-          done
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-
-          # 간단하고 확실한 방법으로 XML에서 직접 추출
+          # JaCoCo XML에서 커버리지 통계 추출
           JACOCO_XML="build/reports/jacoco/test/jacocoTestReport.xml"
           
           if [ -f "$JACOCO_XML" ]; then
-            # XML 파일의 마지막 부분에서 프로젝트 전체 통계 추출 (가장 마지막 counter들)
+            # XML 파일에서 프로젝트 전체 통계 추출 (가장 마지막 counter들)
             LINE_STATS=$(grep -o '<counter type="LINE"[^>]*>' "$JACOCO_XML" | tail -1)
             BRANCH_STATS=$(grep -o '<counter type="BRANCH"[^>]*>' "$JACOCO_XML" | tail -1)
-            
-            echo "**Debug: Raw XML counters**" >> "$GITHUB_STEP_SUMMARY"
-            echo "- LINE_STATS: $LINE_STATS" >> "$GITHUB_STEP_SUMMARY"  
-            echo "- BRANCH_STATS: $BRANCH_STATS" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
             
             # LINE 통계 추출
             LINE_MISSED=$(echo "$LINE_STATS" | sed -n 's/.*missed="\([0-9]*\)".*/\1/p')
@@ -129,23 +118,18 @@ jobs:
             BRANCH_MISSED=${BRANCH_MISSED:-0}
             BRANCH_COVERED=${BRANCH_COVERED:-0}
             
-            echo "**Debug: Extracted values**" >> "$GITHUB_STEP_SUMMARY"
-            echo "- LINE_MISSED=$LINE_MISSED, LINE_COVERED=$LINE_COVERED" >> "$GITHUB_STEP_SUMMARY"
-            echo "- BRANCH_MISSED=$BRANCH_MISSED, BRANCH_COVERED=$BRANCH_COVERED" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            
             # 계산
             TOTAL_LINES=$((LINE_COVERED + LINE_MISSED))
             TOTAL_BRANCHES=$((BRANCH_COVERED + BRANCH_MISSED))
             
             if [ "$TOTAL_LINES" -gt 0 ]; then
-              LINE_PCT=$(awk "BEGIN {printf \"%.2f\", ($LINE_COVERED/$TOTAL_LINES)*100}")
+              LINE_PCT=$(awk "BEGIN {printf \"%.1f\", ($LINE_COVERED/$TOTAL_LINES)*100}")
             else
               LINE_PCT="N/A"
             fi
             
             if [ "$TOTAL_BRANCHES" -gt 0 ]; then
-              BRANCH_PCT=$(awk "BEGIN {printf \"%.2f\", ($BRANCH_COVERED/$TOTAL_BRANCHES)*100}")
+              BRANCH_PCT=$(awk "BEGIN {printf \"%.1f\", ($BRANCH_COVERED/$TOTAL_BRANCHES)*100}")
             else
               BRANCH_PCT="N/A"
             fi
@@ -155,7 +139,7 @@ jobs:
             echo "| 📄 Lines | **${LINE_PCT}%** | \`${LINE_COVERED} / ${TOTAL_LINES}\` |" >> "$GITHUB_STEP_SUMMARY"
             echo "| 🌿 Branches | **${BRANCH_PCT}%** | \`${BRANCH_COVERED} / ${TOTAL_BRANCHES}\` |" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "❌ XML file not found: $JACOCO_XML" >> "$GITHUB_STEP_SUMMARY"
+            echo "❌ JaCoCo report not found" >> "$GITHUB_STEP_SUMMARY"
           fi
 
           echo "" >> "$GITHUB_STEP_SUMMARY"
