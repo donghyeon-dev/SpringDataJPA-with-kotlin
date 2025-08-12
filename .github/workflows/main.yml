@@ -89,60 +89,74 @@ jobs:
         echo "## 📊 Code Coverage Report" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        REPORT_FILE="build/reports/jacoco/test/jacocoTestReport.xml"
+        # 모든 jacocoTestReport.xml 탐색
+        mapfile -t REPORTS < <(find . -path "*/build/reports/jacoco/test/jacocoTestReport.xml")
         
-        if [ -f "$REPORT_FILE" ]; then
-          echo "✅ Jacoco report found. Generating summary..." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Extract the overall line and branch coverage from the last <counter> tags in the report.
-          # This is the most reliable way to get the grand total.
-          LINE_COUNTER=$(grep '<counter type="LINE"' "$REPORT_FILE" | tail -1)
-          BRANCH_COUNTER=$(grep '<counter type="BRANCH"' "$REPORT_FILE" | tail -1)
-          
-          LINE_MISSED=$(echo "$LINE_COUNTER" | sed -n 's/.*missed="\([0-9]*\)".*/\1/p')
-          LINE_COVERED=$(echo "$LINE_COUNTER" | sed -n 's/.*covered="\([0-9]*\)".*/\1/p')
-          
-          BRANCH_MISSED=$(echo "$BRANCH_COUNTER" | sed -n 's/.*missed="\([0-9]*\)".*/\1/p')
-          BRANCH_COVERED=$(echo "$BRANCH_COUNTER" | sed -n 's/.*covered="\([0-9]*\)".*/\1/p')
-          
-          # Set defaults for empty values to prevent errors
-          LINE_MISSED=${LINE_MISSED:-0}
-          LINE_COVERED=${LINE_COVERED:-0}
-          BRANCH_MISSED=${BRANCH_MISSED:-0}
-          BRANCH_COVERED=${BRANCH_COVERED:-0}
-          
-          # Calculate totals
-          TOTAL_LINES=$((LINE_COVERED + LINE_MISSED))
-          TOTAL_BRANCHES=$((BRANCH_COVERED + BRANCH_MISSED))
-          
-          # Calculate percentages
-          if [ "$TOTAL_LINES" -gt 0 ]; then
-            LINE_COVERAGE=$(awk "BEGIN {printf \"%.2f\", ($LINE_COVERED/$TOTAL_LINES)*100}")
-          else
-            LINE_COVERAGE="0.00"
-          fi
-          
-          if [ "$TOTAL_BRANCHES" -gt 0 ]; then
-            BRANCH_COVERAGE=$(awk "BEGIN {printf \"%.2f\", ($BRANCH_COVERED/$TOTAL_BRANCHES)*100}")
-          else
-            BRANCH_COVERAGE="N/A"
-          fi
-          
-          cat <<EOF >> $GITHUB_STEP_SUMMARY
-        | Metric | Coverage | Covered / Total |
-        |--------|:--------:|:---------------:|
-        | 📄 Lines | **${LINE_COVERAGE}%** | `${LINE_COVERED} / ${TOTAL_LINES}` |
-        | 🌿 Branches | **${BRANCH_COVERAGE}%** | `${BRANCH_COVERED} / ${TOTAL_BRANCHES}` |
-        EOF
-        else
-          echo "❌ Jacoco report not found at $REPORT_FILE" >> $GITHUB_STEP_SUMMARY
+        if [ ${#REPORTS[@]} -eq 0 ]; then
+          echo "❌ No jacocoTestReport.xml found" >> $GITHUB_STEP_SUMMARY
+          exit 0
         fi
         
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "📁 [Download full coverage report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        # Python으로 안전 파싱/집계
+        python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          import sys, pathlib
+          
+          reports = sys.stdin.read().strip().splitlines()
+          total_line_missed = total_line_covered = 0
+          total_branch_missed = total_branch_covered = 0
+        
+        for p in reports:
+          path = pathlib.Path(p)
+          if not path.exists():
+            continue
+          try:
+            tree = ET.parse(path)
+            root = tree.getroot()
+            # report scope의 counter 취합 (fallback: 전체 합산)
+            counters = root.findall("./counter")
+            if not counters:
+              # 패키지/클래스 레벨 전부 합산
+              counters = root.findall(".//counter")
+            for c in counters:
+              t = c.attrib.get("type")
+              missed = int(c.attrib.get("missed", "0"))
+              covered = int(c.attrib.get("covered", "0"))
+              if t == "LINE":
+                total_line_missed += missed
+                total_line_covered += covered
+              elif t == "BRANCH":
+                total_branch_missed += missed
+                total_branch_covered += covered
+          except Exception as e:
+            # 파일 하나 파싱 실패해도 전체는 계속
+            pass
+        
+        def pct(cov, miss):
+          tot = cov + miss
+          return (cov / tot * 100.0) if tot > 0 else None
+          
+          line_pct = pct(total_line_covered, total_line_missed)
+          branch_pct = pct(total_branch_covered, total_branch_missed)
+        
+        def fmt(x):
+          return f"{x:.2f}%" if x is not None else "N/A"
+          
+          print(f"| Metric | Coverage | Covered / Total |")
+          print(f"|--------|:--------:|:---------------:|")
+          print(f"| 📄 Lines | **{fmt(line_pct)}** | `{total_line_covered} / {total_line_covered + total_line_missed}` |")
+        if branch_pct is None:
+          print(f"| 🌿 Branches | **N/A** | `0 / 0` |")
+        else:
+          print(f"| 🌿 Branches | **{fmt(branch_pct)}** | `{total_branch_covered} / {total_branch_covered + total_branch_missed}` |")
+          PY
+          | tee -a "$GITHUB_STEP_SUMMARY" > /dev/null
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📁 [Download full coverage report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        shell: bash
 
-    # NOTE: The Gradle Wrapper is the default and recommended way to run Gradle (https://docs.gradle.org/current/userguide/gradle_wrapper.html).
+  # NOTE: The Gradle Wrapper is the default and recommended way to run Gradle (https://docs.gradle.org/current/userguide/gradle_wrapper.html).
     # If your project does not have the Gradle Wrapper configured, you can use the following configuration to run Gradle with a specified version.
     #
     # - name: Setup Gradle
