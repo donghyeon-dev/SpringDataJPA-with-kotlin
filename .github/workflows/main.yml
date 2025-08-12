@@ -47,7 +47,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: radle Tests-${{ github.run_id }}
+        name: test-results-${{ github.run_id }}
         path: |
           build/reports/tests/test/
           build/test-results/test/
@@ -57,40 +57,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: coverage-reports
-        path: |
-          build/reports/jacoco/test/
-        retention-days: 30
-
-    - name: Publish Test Report
-      uses: dorny/test-reporter@v1
-      if: always()
-      with:
-        name: Gradle Tests
-        path: build/test-results/test/*.xml
-        reporter: java-junit
-        fail-on-error: true
-
-    - name: Run Tests and Generate Reports
-      run: |
-        ./gradlew test --continue
-        ./gradlew jacocoTestReport
-
-    - name: Upload Test Results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: |
-          build/reports/tests/test/
-          build/test-results/test/
-        retention-days: 30
-
-    - name: Upload Coverage Reports
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: coverage-reports
+        name: coverage-reports-${{ github.run_id }}
         path: |
           build/reports/jacoco/test/
         retention-days: 30
@@ -117,7 +84,7 @@ jobs:
 
   dependency-submission:
 
-    runs-on: enterprise-default
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
