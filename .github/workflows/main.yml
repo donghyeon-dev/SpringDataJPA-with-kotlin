@@ -93,12 +93,29 @@ jobs:
           echo "✅ Jacoco report found" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
+          # Debug: Show the end of the XML file to understand the structure
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>🔍 Debug Info (Click to expand)</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`xml" >> $GITHUB_STEP_SUMMARY
+          tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
           # Extract the overall project statistics from the last </report> section
           # Look for the counter elements right before </report>
-          LINE_MISSED=$(tail -c 500 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="LINE" missed="[0-9]*"' | grep -o '[0-9]*' | tail -1)
-          LINE_COVERED=$(tail -c 500 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="LINE".*covered="[0-9]*"' | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*' | tail -1)
-          BRANCH_MISSED=$(tail -c 500 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="BRANCH" missed="[0-9]*"' | grep -o '[0-9]*' | tail -1)
-          BRANCH_COVERED=$(tail -c 500 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="BRANCH".*covered="[0-9]*"' | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*' | tail -1)
+          LINE_MISSED=$(tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="LINE" missed="[0-9]*"' | grep -o '[0-9]*' | tail -1)
+          LINE_COVERED=$(tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="LINE".*covered="[0-9]*"' | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*' | tail -1)
+          BRANCH_MISSED=$(tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="BRANCH" missed="[0-9]*"' | grep -o '[0-9]*' | tail -1)
+          BRANCH_COVERED=$(tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="BRANCH".*covered="[0-9]*"' | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*' | tail -1)
+          
+          # Debug: Show extracted values
+          echo "**Debug Values:**" >> $GITHUB_STEP_SUMMARY
+          echo "- LINE_MISSED='$LINE_MISSED', LINE_COVERED='$LINE_COVERED'" >> $GITHUB_STEP_SUMMARY
+          echo "- BRANCH_MISSED='$BRANCH_MISSED', BRANCH_COVERED='$BRANCH_COVERED'" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           
           # Set defaults for empty values
           LINE_MISSED=${LINE_MISSED:-0}
