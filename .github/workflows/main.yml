@@ -89,52 +89,24 @@ jobs:
         echo "## 📊 Code Coverage Report" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        if [ -f "build/reports/jacoco/test/jacocoTestReport.xml" ]; then
-          echo "✅ Jacoco report found" >> $GITHUB_STEP_SUMMARY
+        REPORT_FILE="build/reports/jacoco/test/jacocoTestReport.xml"
+        
+        if [ -f "$REPORT_FILE" ]; then
+          echo "✅ Jacoco report found. Generating summary..." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Debug: Show the end of the XML file to understand the structure
-          echo "<details>" >> $GITHUB_STEP_SUMMARY
-          echo "<summary>🔍 Debug Info (Click to expand)</summary>" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`xml" >> $GITHUB_STEP_SUMMARY
-          tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "</details>" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Extract the overall project statistics from the last </report> section
-          # Look for counter elements right before </report> (project totals)
-          XML_END=$(tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml)
-          
-          # Find the specific line containing the project-level LINE counter
-          LINE_COUNTER=$(echo "$XML_END" | grep -E '</package><counter type="LINE"' | head -1)
-          if [ -z "$LINE_COUNTER" ]; then
-            # Fallback: look for the very last LINE counter before </report>
-            LINE_COUNTER=$(echo "$XML_END" | grep 'counter type="LINE"' | grep -v '</package>' | tail -1)
-          fi
+          # Extract the overall line and branch coverage from the last <counter> tags in the report.
+          # This is the most reliable way to get the grand total.
+          LINE_COUNTER=$(grep '<counter type="LINE"' "$REPORT_FILE" | tail -1)
+          BRANCH_COUNTER=$(grep '<counter type="BRANCH"' "$REPORT_FILE" | tail -1)
           
           LINE_MISSED=$(echo "$LINE_COUNTER" | sed -n 's/.*missed="\([0-9]*\)".*/\1/p')
           LINE_COVERED=$(echo "$LINE_COUNTER" | sed -n 's/.*covered="\([0-9]*\)".*/\1/p')
           
-          # Find the specific line containing the project-level BRANCH counter  
-          BRANCH_COUNTER=$(echo "$XML_END" | grep -E '</package><counter type="BRANCH"' | head -1)
-          if [ -z "$BRANCH_COUNTER" ]; then
-            # Fallback: look for the very last BRANCH counter before </report>
-            BRANCH_COUNTER=$(echo "$XML_END" | grep 'counter type="BRANCH"' | grep -v '</package>' | tail -1)
-          fi
-          
           BRANCH_MISSED=$(echo "$BRANCH_COUNTER" | sed -n 's/.*missed="\([0-9]*\)".*/\1/p')
           BRANCH_COVERED=$(echo "$BRANCH_COUNTER" | sed -n 's/.*covered="\([0-9]*\)".*/\1/p')
           
-          # Debug: Show extracted values
-          echo "**Debug Values:**" >> $GITHUB_STEP_SUMMARY
-          echo "- LINE_MISSED='$LINE_MISSED', LINE_COVERED='$LINE_COVERED'" >> $GITHUB_STEP_SUMMARY
-          echo "- BRANCH_MISSED='$BRANCH_MISSED', BRANCH_COVERED='$BRANCH_COVERED'" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Set defaults for empty values
+          # Set defaults for empty values to prevent errors
           LINE_MISSED=${LINE_MISSED:-0}
           LINE_COVERED=${LINE_COVERED:-0}
           BRANCH_MISSED=${BRANCH_MISSED:-0}
@@ -146,27 +118,29 @@ jobs:
           
           # Calculate percentages
           if [ "$TOTAL_LINES" -gt 0 ]; then
-            LINE_COVERAGE=$(awk "BEGIN {printf \"%.1f\", ($LINE_COVERED/$TOTAL_LINES)*100}")
+            LINE_COVERAGE=$(awk "BEGIN {printf \"%.2f\", ($LINE_COVERED/$TOTAL_LINES)*100}")
           else
-            LINE_COVERAGE="0.0"
+            LINE_COVERAGE="0.00"
           fi
           
           if [ "$TOTAL_BRANCHES" -gt 0 ]; then
-            BRANCH_COVERAGE=$(awk "BEGIN {printf \"%.1f\", ($BRANCH_COVERED/$TOTAL_BRANCHES)*100}")
+            BRANCH_COVERAGE=$(awk "BEGIN {printf \"%.2f\", ($BRANCH_COVERED/$TOTAL_BRANCHES)*100}")
           else
             BRANCH_COVERAGE="N/A"
           fi
           
-          echo "| Metric | Coverage | Covered | Total |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|----------|---------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 📄 Lines | ${LINE_COVERAGE}% | ${LINE_COVERED} | ${TOTAL_LINES} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🌿 Branches | ${BRANCH_COVERAGE}% | ${BRANCH_COVERED} | ${TOTAL_BRANCHES} |" >> $GITHUB_STEP_SUMMARY
+          cat <<EOF >> $GITHUB_STEP_SUMMARY
+        | Metric | Coverage | Covered / Total |
+        |--------|:--------:|:---------------:|
+        | 📄 Lines | **${LINE_COVERAGE}%** | `${LINE_COVERED} / ${TOTAL_LINES}` |
+        | 🌿 Branches | **${BRANCH_COVERAGE}%** | `${BRANCH_COVERED} / ${TOTAL_BRANCHES}` |
+        EOF
         else
-          echo "❌ Jacoco report not found" >> $GITHUB_STEP_SUMMARY
+          echo "❌ Jacoco report not found at $REPORT_FILE" >> $GITHUB_STEP_SUMMARY
         fi
         
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "📁 [Download Coverage Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        echo "📁 [Download full coverage report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
 
     # NOTE: The Gradle Wrapper is the default and recommended way to run Gradle (https://docs.gradle.org/current/userguide/gradle_wrapper.html).
     # If your project does not have the Gradle Wrapper configured, you can use the following configuration to run Gradle with a specified version.
