@@ -69,6 +69,39 @@ jobs:
         reporter: java-junit
         fail-on-error: true
 
+    - name: Run Tests and Generate Reports
+      run: |
+        ./gradlew test --continue
+        ./gradlew jacocoTestReport
+
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          build/reports/tests/test/
+          build/test-results/test/
+        retention-days: 30
+
+    - name: Upload Coverage Reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-reports
+        path: |
+          build/reports/jacoco/test/
+        retention-days: 30
+
+    - name: Publish Test Report
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: Gradle Tests
+        path: build/test-results/test/*.xml
+        reporter: java-junit
+        fail-on-error: true
+
     # NOTE: The Gradle Wrapper is the default and recommended way to run Gradle (https://docs.gradle.org/current/userguide/gradle_wrapper.html).
     # If your project does not have the Gradle Wrapper configured, you can use the following configuration to run Gradle with a specified version.
     #

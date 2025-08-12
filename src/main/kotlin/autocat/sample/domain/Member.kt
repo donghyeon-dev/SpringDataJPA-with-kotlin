@@ -57,7 +57,7 @@ open class Member(
 
     private fun changeNickname(newNicnkame: String){
         validateNickname(newNicnkame)
-        this@Member.nickname = newNicnkame
+        nickname = newNicnkame
     }
 
     private fun changeEmail(newEmail: String){
@@ -76,8 +76,8 @@ open class Member(
     }
 
     fun update(request: MemberUpdateRequest) {
-        request.nickname?.takeIf { it.isNotBlank() }?.let { changeNickname(it) }
-        request.email?.takeIf { it.isNotBlank() }?.let { changeEmail(it) }
+        request.nickname?.let { changeNickname(it) }
+        request.email?.let { changeEmail(it) }
 
     }
 

@@ -38,3 +38,8 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### personal ###
+/CLAUDE.md
+/**.ipynb
+/.claude/settings.local.json
