@@ -78,32 +78,32 @@ jobs:
           update-comment: true
 
       - name: Generate Coverage Summary
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
+  if: always()
+  shell: bash
+  run: |
+    set -euo pipefail
 
-          echo "## 📊 Code Coverage Report" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+    echo "## 📊 Code Coverage Report" >> "$GITHUB_STEP_SUMMARY"
+    echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          # 모든 jacocoTestReport.xml 탐색 (단일/멀티모듈 대응)
-          mapfile -t REPORTS < <(find . -path "*/build/reports/jacoco/test/jacocoTestReport.xml" -type f | sort)
+    # 모든 jacocoTestReport.xml 탐색 (단일/멀티모듈 대응)
+    mapfile -t REPORTS < <(find . -path "*/build/reports/jacoco/test/jacocoTestReport.xml" -type f | sort)
 
-          if [ ${#REPORTS[@]} -eq 0 ]; then
-            echo "❌ No jacocoTestReport.xml found" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "📁 [Open run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
+    if [ ${#REPORTS[@]} -eq 0 ]; then
+      echo "❌ No jacocoTestReport.xml found" >> "$GITHUB_STEP_SUMMARY"
+      echo "" >> "$GITHUB_STEP_SUMMARY"
+      echo "📁 [Open run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> "$GITHUB_STEP_SUMMARY"
+      exit 0
+    fi
 
-          echo "✅ Jacoco report(s) found:" >> "$GITHUB_STEP_SUMMARY"
-          for r in "${REPORTS[@]}"; do
-            echo "- $r" >> "$GITHUB_STEP_SUMMARY"
-          done
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+    echo "✅ Jacoco report(s) found:" >> "$GITHUB_STEP_SUMMARY"
+    for r in "${REPORTS[@]}"; do
+      echo "- $r" >> "$GITHUB_STEP_SUMMARY"
+    done
+    echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          # REPORTS 목록을 stdin으로 파이썬에 전달해 안전 파싱/집계
-          printf '%s\n' "${REPORTS[@]}" | python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY" >/dev/null
+    # REPORTS 목록을 stdin으로 파이썬에 전달해 안전 파싱/집계
+    printf '%s\n' "${REPORTS[@]}" | python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY" >/dev/null
 import sys, pathlib, xml.etree.ElementTree as ET
 
 reports = [line.strip() for line in sys.stdin if line.strip()]
@@ -117,7 +117,6 @@ for p in reports:
     try:
         tree = ET.parse(path)
         root = tree.getroot()
-        # 우선 report 바로 아래의 counter를 사용, 없으면 하위 전체 합산
         counters = root.findall("./counter") or root.findall(".//counter")
         for c in counters:
             t = c.attrib.get("type")
@@ -130,7 +129,6 @@ for p in reports:
                 total_branch_missed += missed
                 total_branch_covered += covered
     except Exception:
-        # 개별 파일 파싱 실패는 무시하고 계속 진행
         pass
 
 def pct(covered, missed):
@@ -145,15 +143,15 @@ def fmt(x):
 
 print("| Metric | Coverage | Covered / Total |")
 print("|--------|:--------:|:---------------:|")
-print(f"| 📄 Lines | **{fmt(line_pct)}** | `{total_line_covered} / {total_line_covered + total_line_missed}` |")
+print(f"| 📄 Lines | **{fmt(line_pct)}** | `{total_line_covered} / {total_line_missed + total_line_covered}` |")
 if branch_pct is None:
     print("| 🌿 Branches | **N/A** | `0 / 0` |")
 else:
-    print(f"| 🌿 Branches | **{fmt(branch_pct)}** | `{total_branch_covered} / {total_branch_covered + total_branch_missed}` |")
+    print(f"| 🌿 Branches | **{fmt(branch_pct)}** | `{total_branch_covered} / {total_branch_missed + total_branch_covered}` |")
 PY
 
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "📁 [Open run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> "$GITHUB_STEP_SUMMARY"
+    echo "" >> "$GITHUB_STEP_SUMMARY"
+    echo "📁 [Open run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> "$GITHUB_STEP_SUMMARY"
 
   dependency-submission:
     runs-on: ubuntu-latest
