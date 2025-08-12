@@ -36,12 +36,12 @@ jobs:
       uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
 
     - name: Build with Gradle Wrapper
-      run: ./gradlew build --warning-mode all
+      run: ./gradlew build
 
     - name: Run Tests and Generate Reports
       run: |
-        ./gradlew test --continue --warning-mode all
-        ./gradlew jacocoTestReport --warning-mode all
+        ./gradlew test --continue
+        ./gradlew jacocoTestReport
 
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
@@ -92,29 +92,63 @@ jobs:
         if [ -f "build/reports/jacoco/test/jacocoTestReport.xml" ]; then
           echo "✅ Jacoco report found" >> $GITHUB_STEP_SUMMARY
           
-          # Extract coverage data from root <report> element (total statistics)
-          LINE_MISSED=$(xmllint --xpath 'string(//report/counter[@type="LINE"]/@missed)' build/reports/jacoco/test/jacocoTestReport.xml 2>/dev/null || echo "0")
-          LINE_COVERED=$(xmllint --xpath 'string(//report/counter[@type="LINE"]/@covered)' build/reports/jacoco/test/jacocoTestReport.xml 2>/dev/null || echo "0")
+          # Debug: Show first few lines of XML to understand structure
+          echo "🔍 XML structure:" >> $GITHUB_STEP_SUMMARY
+          head -20 build/reports/jacoco/test/jacocoTestReport.xml >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           
-          BRANCH_MISSED=$(xmllint --xpath 'string(//report/counter[@type="BRANCH"]/@missed)' build/reports/jacoco/test/jacocoTestReport.xml 2>/dev/null || echo "0")
-          BRANCH_COVERED=$(xmllint --xpath 'string(//report/counter[@type="BRANCH"]/@covered)' build/reports/jacoco/test/jacocoTestReport.xml 2>/dev/null || echo "0")
+          # Try xmllint first
+          LINE_MISSED=$(xmllint --xpath 'string(//report/counter[@type="LINE"]/@missed)' build/reports/jacoco/test/jacocoTestReport.xml 2>/dev/null || echo "")
+          LINE_COVERED=$(xmllint --xpath 'string(//report/counter[@type="LINE"]/@covered)' build/reports/jacoco/test/jacocoTestReport.xml 2>/dev/null || echo "")
           
-          # Fallback to grep if xmllint is not available
-          if [ "$LINE_COVERED" = "0" ] && [ "$LINE_MISSED" = "0" ]; then
-            # Find the report root element and extract totals
-            LINE_DATA=$(grep '<report' -A 50 build/reports/jacoco/test/jacocoTestReport.xml | grep 'type="LINE"' | head -1)
-            LINE_MISSED=$(echo "$LINE_DATA" | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*' || echo "0")
-            LINE_COVERED=$(echo "$LINE_DATA" | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*' || echo "0")
+          echo "🔍 xmllint results:" >> $GITHUB_STEP_SUMMARY
+          echo "LINE_MISSED='$LINE_MISSED'" >> $GITHUB_STEP_SUMMARY  
+          echo "LINE_COVERED='$LINE_COVERED'" >> $GITHUB_STEP_SUMMARY
+          
+          # Fallback to grep method
+          if [ -z "$LINE_COVERED" ] || [ "$LINE_COVERED" = "0" ]; then
+            echo "🔄 Using grep fallback method" >> $GITHUB_STEP_SUMMARY
             
-            BRANCH_DATA=$(grep '<report' -A 50 build/reports/jacoco/test/jacocoTestReport.xml | grep 'type="BRANCH"' | head -1)
-            BRANCH_MISSED=$(echo "$BRANCH_DATA" | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*' || echo "0")
-            BRANCH_COVERED=$(echo "$BRANCH_DATA" | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*' || echo "0")
+            # Find counter elements directly under report
+            LINE_DATA=$(grep -A 5 '<report' build/reports/jacoco/test/jacocoTestReport.xml | grep 'counter.*type="LINE"')
+            BRANCH_DATA=$(grep -A 5 '<report' build/reports/jacoco/test/jacocoTestReport.xml | grep 'counter.*type="BRANCH"')
+            
+            echo "🔍 Raw LINE_DATA: $LINE_DATA" >> $GITHUB_STEP_SUMMARY
+            echo "🔍 Raw BRANCH_DATA: $BRANCH_DATA" >> $GITHUB_STEP_SUMMARY
+            
+            LINE_MISSED=$(echo "$LINE_DATA" | grep -o 'missed="[0-9]*"' | head -1 | grep -o '[0-9]*')
+            LINE_COVERED=$(echo "$LINE_DATA" | grep -o 'covered="[0-9]*"' | head -1 | grep -o '[0-9]*')
+            
+            BRANCH_MISSED=$(echo "$BRANCH_DATA" | grep -o 'missed="[0-9]*"' | head -1 | grep -o '[0-9]*')
+            BRANCH_COVERED=$(echo "$BRANCH_DATA" | grep -o 'covered="[0-9]*"' | head -1 | grep -o '[0-9]*')
+          else
+            BRANCH_MISSED=$(xmllint --xpath 'string(//report/counter[@type="BRANCH"]/@missed)' build/reports/jacoco/test/jacocoTestReport.xml 2>/dev/null || echo "0")
+            BRANCH_COVERED=$(xmllint --xpath 'string(//report/counter[@type="BRANCH"]/@covered)' build/reports/jacoco/test/jacocoTestReport.xml 2>/dev/null || echo "0")
           fi
           
-          # Calculate coverage percentages
+          # Clean variables (remove any non-numeric characters)
+          LINE_MISSED=$(echo "$LINE_MISSED" | tr -d -c '0-9')
+          LINE_COVERED=$(echo "$LINE_COVERED" | tr -d -c '0-9')
+          BRANCH_MISSED=$(echo "$BRANCH_MISSED" | tr -d -c '0-9')
+          BRANCH_COVERED=$(echo "$BRANCH_COVERED" | tr -d -c '0-9')
+          
+          # Set defaults for empty values
+          LINE_MISSED=${LINE_MISSED:-0}
+          LINE_COVERED=${LINE_COVERED:-0}
+          BRANCH_MISSED=${BRANCH_MISSED:-0}
+          BRANCH_COVERED=${BRANCH_COVERED:-0}
+          
+          echo "🔍 Final values:" >> $GITHUB_STEP_SUMMARY
+          echo "LINE_MISSED=$LINE_MISSED, LINE_COVERED=$LINE_COVERED" >> $GITHUB_STEP_SUMMARY
+          echo "BRANCH_MISSED=$BRANCH_MISSED, BRANCH_COVERED=$BRANCH_COVERED" >> $GITHUB_STEP_SUMMARY
+          
+          # Calculate totals safely
           TOTAL_LINES=$((LINE_COVERED + LINE_MISSED))
           TOTAL_BRANCHES=$((BRANCH_COVERED + BRANCH_MISSED))
           
+          echo "🔍 Totals: TOTAL_LINES=$TOTAL_LINES, TOTAL_BRANCHES=$TOTAL_BRANCHES" >> $GITHUB_STEP_SUMMARY
+          
+          # Calculate percentages
           if [ "$TOTAL_LINES" -gt 0 ]; then
             LINE_COVERAGE=$(awk "BEGIN {printf \"%.1f\", ($LINE_COVERED/$TOTAL_LINES)*100}")
           else
@@ -125,23 +159,13 @@ jobs:
             BRANCH_COVERAGE=$(awk "BEGIN {printf \"%.1f\", ($BRANCH_COVERED/$TOTAL_BRANCHES)*100}")
           else
             BRANCH_COVERAGE="N/A"
-            TOTAL_BRANCHES="0"
-            BRANCH_COVERED="0"
           fi
           
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Metric | Coverage | Covered | Total |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|----------|---------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| 📄 Lines | ${LINE_COVERAGE}% | ${LINE_COVERED} | ${TOTAL_LINES} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🌿 Branches | ${BRANCH_COVERAGE}% | ${BRANCH_COVERED} | ${TOTAL_BRANCHES} |" >> $GITHUB_STEP_SUMMARY
-          
-          # Debug information
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "<details><summary>📋 Debug Info</summary>" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Lines: ${LINE_COVERED} covered + ${LINE_MISSED} missed = ${TOTAL_LINES} total" >> $GITHUB_STEP_SUMMARY
-          echo "- Branches: ${BRANCH_COVERED} covered + ${BRANCH_MISSED} missed = ${TOTAL_BRANCHES} total" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "</details>" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Jacoco report not found" >> $GITHUB_STEP_SUMMARY
         fi
