@@ -105,16 +105,28 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Extract the overall project statistics from the last </report> section
-          # Look for the very last counter elements (project totals) right before </report>
+          # Look for counter elements right before </report> (project totals)
           XML_END=$(tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml)
           
-          # Get the last LINE counter (project total)
-          LINE_MISSED=$(echo "$XML_END" | grep 'counter type="LINE"' | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
-          LINE_COVERED=$(echo "$XML_END" | grep 'counter type="LINE"' | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
+          # Find the specific line containing the project-level LINE counter
+          LINE_COUNTER=$(echo "$XML_END" | grep -E '</package><counter type="LINE"' | head -1)
+          if [ -z "$LINE_COUNTER" ]; then
+            # Fallback: look for the very last LINE counter before </report>
+            LINE_COUNTER=$(echo "$XML_END" | grep 'counter type="LINE"' | grep -v '</package>' | tail -1)
+          fi
           
-          # Get the last BRANCH counter (project total)
-          BRANCH_MISSED=$(echo "$XML_END" | grep 'counter type="BRANCH"' | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
-          BRANCH_COVERED=$(echo "$XML_END" | grep 'counter type="BRANCH"' | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
+          LINE_MISSED=$(echo "$LINE_COUNTER" | sed -n 's/.*missed="\([0-9]*\)".*/\1/p')
+          LINE_COVERED=$(echo "$LINE_COUNTER" | sed -n 's/.*covered="\([0-9]*\)".*/\1/p')
+          
+          # Find the specific line containing the project-level BRANCH counter  
+          BRANCH_COUNTER=$(echo "$XML_END" | grep -E '</package><counter type="BRANCH"' | head -1)
+          if [ -z "$BRANCH_COUNTER" ]; then
+            # Fallback: look for the very last BRANCH counter before </report>
+            BRANCH_COUNTER=$(echo "$XML_END" | grep 'counter type="BRANCH"' | grep -v '</package>' | tail -1)
+          fi
+          
+          BRANCH_MISSED=$(echo "$BRANCH_COUNTER" | sed -n 's/.*missed="\([0-9]*\)".*/\1/p')
+          BRANCH_COVERED=$(echo "$BRANCH_COUNTER" | sed -n 's/.*covered="\([0-9]*\)".*/\1/p')
           
           # Debug: Show extracted values
           echo "**Debug Values:**" >> $GITHUB_STEP_SUMMARY
