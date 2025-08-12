@@ -105,11 +105,16 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Extract the overall project statistics from the last </report> section
-          # Look for the counter elements right before </report>
-          LINE_MISSED=$(tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="LINE" missed="[0-9]*"' | grep -o '[0-9]*' | tail -1)
-          LINE_COVERED=$(tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="LINE".*covered="[0-9]*"' | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*' | tail -1)
-          BRANCH_MISSED=$(tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="BRANCH" missed="[0-9]*"' | grep -o '[0-9]*' | tail -1)
-          BRANCH_COVERED=$(tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml | grep -o 'counter type="BRANCH".*covered="[0-9]*"' | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*' | tail -1)
+          # Look for the very last counter elements (project totals) right before </report>
+          XML_END=$(tail -c 800 build/reports/jacoco/test/jacocoTestReport.xml)
+          
+          # Get the last LINE counter (project total)
+          LINE_MISSED=$(echo "$XML_END" | grep 'counter type="LINE"' | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
+          LINE_COVERED=$(echo "$XML_END" | grep 'counter type="LINE"' | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
+          
+          # Get the last BRANCH counter (project total)
+          BRANCH_MISSED=$(echo "$XML_END" | grep 'counter type="BRANCH"' | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
+          BRANCH_COVERED=$(echo "$XML_END" | grep 'counter type="BRANCH"' | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
           
           # Debug: Show extracted values
           echo "**Debug Values:**" >> $GITHUB_STEP_SUMMARY
