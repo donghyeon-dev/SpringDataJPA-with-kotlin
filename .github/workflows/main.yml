@@ -38,8 +38,8 @@ jobs:
 
     - name: Run Tests and Generate Reports
       run: |
-        ./gradlew test --continue
-        ./gradlew jacocoTestReport
+        ./gradlew test --continue --warning-mode all
+        ./gradlew jacocoTestReport --warning-mode all
 
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
