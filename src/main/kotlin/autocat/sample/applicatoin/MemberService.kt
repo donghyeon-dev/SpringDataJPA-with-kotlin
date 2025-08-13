@@ -6,6 +6,7 @@ import autocat.sample.domain.MemberUpdateRequest
 import autocat.sample.repository.MemberRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
+import java.util.*
 
 @Service
 class MemberService(private final val memberRepository: MemberRepository) {
@@ -20,11 +21,11 @@ class MemberService(private final val memberRepository: MemberRepository) {
             .toMutableList()
     }
 
-    fun findMember(memberId: Long): Member? {
+    fun findMember(memberId: UUID): Member? {
         return memberRepository.findByIdOrNull(memberId)
     }
 
-    fun updateMember(memberId: Long, memberUpdateRequest: MemberUpdateRequest): Member {
+    fun updateMember(memberId: UUID, memberUpdateRequest: MemberUpdateRequest): Member {
         val member = requireNotNull(memberRepository.findByIdOrNull(memberId)) { "Member not found" }
         member.update(memberUpdateRequest)
         return memberRepository.save(member)

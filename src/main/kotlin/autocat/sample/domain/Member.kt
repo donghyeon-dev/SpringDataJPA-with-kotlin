@@ -1,11 +1,8 @@
 package autocat.sample.domain
 
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
+import jakarta.persistence.*
+import java.util.*
 
 @Entity
 open class Member(
@@ -15,7 +12,7 @@ open class Member(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null
+    val id: UUID? = null
 
     @Column(nullable = false, length = 20 )
     var nickname: String = nickname

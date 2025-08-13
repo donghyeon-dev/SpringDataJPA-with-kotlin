@@ -7,6 +7,7 @@ import autocat.sample.domain.MemberUpdateRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.net.URI
+import java.util.*
 
 @RestController
 @RequestMapping("/members")
@@ -25,12 +26,12 @@ class MemberController(private val memberService: MemberService) {
     }
 
     @GetMapping("/{memberId}")
-    fun findMember(@PathVariable memberId: Long): ResponseEntity<Member>? {
+    fun findMember(@PathVariable memberId: UUID): ResponseEntity<Member>? {
         return ResponseEntity.ofNullable(memberService.findMember(memberId))
     }
 
     @PatchMapping("/{memberId}")
-    fun updateMember(@PathVariable memberId:Long, @RequestBody memberUpdateRequest: MemberUpdateRequest): ResponseEntity<Member>{
+    fun updateMember(@PathVariable memberId: UUID, @RequestBody memberUpdateRequest: MemberUpdateRequest): ResponseEntity<Member>{
         return ResponseEntity.ok(memberService.updateMember(memberId, memberUpdateRequest))
     }
 
