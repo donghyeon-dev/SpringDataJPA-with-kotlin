@@ -1,4 +1,4 @@
-package autocat.sample.repository
+package autocat.sample.infrastructure
 
 import autocat.sample.domain.Member
 import org.springframework.data.jpa.repository.JpaRepository

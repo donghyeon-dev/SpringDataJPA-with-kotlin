@@ -3,7 +3,7 @@ package autocat.sample.applicatoin
 import autocat.sample.domain.Member
 import autocat.sample.domain.MemberRegisterRequest
 import autocat.sample.domain.MemberUpdateRequest
-import autocat.sample.repository.MemberRepository
+import autocat.sample.infrastructure.MemberRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import java.util.*
