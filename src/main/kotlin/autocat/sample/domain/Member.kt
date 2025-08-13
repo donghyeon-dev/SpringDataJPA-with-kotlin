@@ -1,32 +1,24 @@
 package autocat.sample.domain
 
 
-import jakarta.persistence.*
-import java.util.*
+import jakarta.persistence.Entity
 
 @Entity
 open class Member(
     nickname: String,
     email: String,
     passwordHash: String
-) {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: UUID? = null
+) : BaseEntity() {
 
-    @Column(nullable = false, length = 20 )
     var nickname: String = nickname
         protected set
 
-    @Column(nullable = false)
     var email: String = email
         protected set
 
-    @Column(nullable = false)
     var passwordHash: String = passwordHash
         protected set
 
-    @Column(nullable = false)
     var status: MemberStatus = MemberStatus.PENDING
         protected set
 

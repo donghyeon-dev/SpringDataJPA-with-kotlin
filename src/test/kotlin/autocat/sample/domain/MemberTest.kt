@@ -33,11 +33,57 @@ class MemberTest() {
 
             // then
             with(member) {
-                assertThat(id).isNull()
+                assertThat(id).isNotNull()
+                assertThat(isNew).isTrue
                 assertThat(nickname).isEqualTo(MemberFixture.createMemberRegisterRequest().nickname)
                 assertThat(email).isEqualTo(MemberFixture.createMemberRegisterRequest().email)
                 assertThat(status).isEqualTo(MemberStatus.PENDING)
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("Member 생성 시 검증")
+    inner class MemberCreationValidation {
+
+        @Test
+        @DisplayName("빈 닉네임으로 생성 시 예외가 발생한다")
+        fun `should throw exception when creating with blank nickname`() {
+            assertThatThrownBy {
+                Member.register(MemberRegisterRequest("", "test@test.com", "password"))
+            }
+                .isInstanceOf(IllegalArgumentException::class.java)
+                .hasMessage("nickname cannot be blank")
+        }
+
+        @Test
+        @DisplayName("빈 이메일로 생성 시 예외가 발생한다")
+        fun `should throw exception when creating with blank email`() {
+            assertThatThrownBy {
+                Member.register(MemberRegisterRequest("nickname", "", "password"))
+            }
+                .isInstanceOf(IllegalArgumentException::class.java)
+                .hasMessage("email cannot be blank")
+        }
+
+        @Test
+        @DisplayName("잘못된 이메일 형식으로 생성 시 예외가 발생한다")
+        fun `should throw exception when creating with invalid email format`() {
+            assertThatThrownBy {
+                Member.register(MemberRegisterRequest("nickname", "invalidemail", "password"))
+            }
+                .isInstanceOf(IllegalArgumentException::class.java)
+                .hasMessage("email must be valid format")
+        }
+
+        @Test
+        @DisplayName("빈 비밀번호로 생성 시 예외가 발생한다")
+        fun `should throw exception when creating with blank password`() {
+            assertThatThrownBy {
+                Member.register(MemberRegisterRequest("nickname", "test@test.com", ""))
+            }
+                .isInstanceOf(IllegalArgumentException::class.java)
+                .hasMessage("passwordHash cannot be blank")
         }
     }
 
@@ -263,48 +309,4 @@ class MemberTest() {
     }
 
 
-    @Nested
-    @DisplayName("Member 생성 시 검증")
-    inner class MemberCreationValidation {
-
-        @Test
-        @DisplayName("빈 닉네임으로 생성 시 예외가 발생한다")
-        fun `should throw exception when creating with blank nickname`() {
-            assertThatThrownBy {
-                Member.register(MemberRegisterRequest("", "test@test.com", "password"))
-            }
-                .isInstanceOf(IllegalArgumentException::class.java)
-                .hasMessage("nickname cannot be blank")
-        }
-
-        @Test
-        @DisplayName("빈 이메일로 생성 시 예외가 발생한다")
-        fun `should throw exception when creating with blank email`() {
-            assertThatThrownBy {
-                Member.register(MemberRegisterRequest("nickname", "", "password"))
-            }
-                .isInstanceOf(IllegalArgumentException::class.java)
-                .hasMessage("email cannot be blank")
-        }
-
-        @Test
-        @DisplayName("잘못된 이메일 형식으로 생성 시 예외가 발생한다")
-        fun `should throw exception when creating with invalid email format`() {
-            assertThatThrownBy {
-                Member.register(MemberRegisterRequest("nickname", "invalidemail", "password"))
-            }
-                .isInstanceOf(IllegalArgumentException::class.java)
-                .hasMessage("email must be valid format")
-        }
-
-        @Test
-        @DisplayName("빈 비밀번호로 생성 시 예외가 발생한다")
-        fun `should throw exception when creating with blank password`() {
-            assertThatThrownBy {
-                Member.register(MemberRegisterRequest("nickname", "test@test.com", ""))
-            }
-                .isInstanceOf(IllegalArgumentException::class.java)
-                .hasMessage("passwordHash cannot be blank")
-        }
-    }
 }
